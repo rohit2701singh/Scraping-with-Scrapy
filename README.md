@@ -1,5 +1,4 @@
 # Web Scraping using Scrapy
-______
 
 ## What is Scrapy?
 Scrapy is an open-source <u>**Python framework**</u> designed for web scraping and web crawling. It allows developers to efficiently extract structured data from websites, process it, and save it in formats like JSON, CSV, or databases. Scrapy provides tools to handle requests, follow links, and manage crawling rules, making it powerful for data mining, automated testing, and information gathering from the web.  
@@ -39,7 +38,6 @@ quotescraper/
       - How to crawl it 
       - What data to extract
 
-___________
 
 ## Example Spider
 - scraping a website https://quotes.toscrape.com/ 
@@ -80,7 +78,6 @@ class QuotesSpider(scrapy.Spider):
 - Look for a link to the next page and schedule another request using the same parse method as callback.
 - `quote.css("span.text::text").get()`, we have added `::text` to the CSS query, this means we want to select only the text elements directly inside `span.text`.
 
-________________
 
 ## Extracting data using Scrapy Shell
 - We can extract data with Scrapy using `Scrapy Shell`  
