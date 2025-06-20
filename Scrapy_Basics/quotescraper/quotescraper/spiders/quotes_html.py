@@ -13,8 +13,14 @@ class QuotesSpider(scrapy.Spider):
         for url in urls:
             yield scrapy.Request(url=url, callback=self.parse)
 
-    def parse(self, response):
+    def parse(self, response, **kwargs):
         page = response.url.split("/")[-2]
         filename = f"quotes-{page}.html"
-        Path(filename).write_bytes(response.body)
+
+        # Make sure the folder 'output/html_files' exists or create it
+        output_dir = Path("output/html_files")
+        output_dir.mkdir(parents=True, exist_ok=True)  # creates folder if not exists
+
+        file_path = output_dir / filename
+        file_path.write_bytes(response.body)
         self.log(f"Saved file {filename}")

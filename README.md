@@ -44,7 +44,8 @@ quotescraper/
 - create a python file `quotes_spider.py` inside spiders folder 
 - put below code inside the file
 - run this file using `runspider` command: `scrapy runspider quotes_spider.py -o quotes.jsonl` or `scrapy crawl quotes -o quotes.jsonl`
-- when this finishes you will have a `quotes.jsonl` file in JSON Line format, containing the text and author
+- when this finishes you will have a `quotes.jsonl` file in JSON Line format, containing the text and author.
+- manage output files separately: `scrapy crawl quotes -o output/jsonl_files/quotes.jsonl`
 
 ```python
 import scrapy
