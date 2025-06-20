@@ -222,3 +222,55 @@ To create multiple requests from an iterable, you can use `response.follow_all` 
 ```shell
 yield from response.follow_all(css="ul.pager a", callback=self.parse)
 ```
+
+## Items in Scrapy
+- Scrapy Items are a predefined data structure that holds your data.
+- Instead of yielding your scraped data in the form of a dictionary for example, you define an Item schema beforehand in your items.py file and use this schema when scraping data.
+- This enables you to quickly and easily check what structured data you are collecting in your project.
+- In Scrapy, `items.py` is where you define the data fields (structure) you want to extract from a website.
+
+### How to use items.py
+1. Define fields in `items.py`
+
+```python
+import scrapy
+
+class QuotescraperItem(scrapy.Item):
+    # define the fields for your item here like:
+    author = scrapy.Field()
+    text = scrapy.Field()
+    tags = scrapy.Field()
+
+```
+2. Use the item in your spider
+
+```python
+import scrapy 
+
+from ..items import QuotescraperItem
+
+class NewQuotesSpider(scrapy.Spider):
+    name = "new_quotes"
+    allowed_domains = ["quotes.toscrape.com"]
+    start_urls = [
+        "https://quotes.toscrape.com/",
+    ]
+
+    def parse(self, response, **kwargs):
+        for quote in response.css("div.quote"):
+            item = QuotescraperItem()
+            item["author"] = quote.xpath("span/small/text()").get()
+            item["text"] = quote.css("span.text::text").get()
+            item["tags"] = quote.css("div.tags a.tag::text").getall()
+            yield item
+
+        next_page = response.css('li.next a::attr("href")').get()
+        if next_page is not None:
+            yield response.follow(next_page, self.parse)
+
+```
+
+3. Run your spider and save output.
+```shell
+scrapy crawl -o output/csv_files/allNewQuotes.csv
+```
