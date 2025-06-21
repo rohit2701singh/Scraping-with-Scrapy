@@ -28,6 +28,7 @@ class QuotesSpider(scrapy.Spider):
 
 # Items in Scrapy
 # items.py is where you define the data fields (structure) you want to extract from a website.
+# run this below spider from bash: scrapy crawl new_quotes -o output/jsonl_files/allNewQuotes.jsonl
 
 from ..items import QuotescraperItem
 

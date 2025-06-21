@@ -6,7 +6,7 @@ With Scrapy you write __Spiders__ to retrieve HTML pages from websites and scrap
 
 ## Creating Scrapy Project
 Before you start scraping, you will have to set up a new Scrapy project. Enter a directory where you’d like to store your code and run:  
-`scrapy startproject <project_name>` for e.g. `scrapy startproject quotescraper`
+`scrapy startproject <project_name> <project directory name>` for e.g. `scrapy startproject quotescraper`
 
 ***Scrapy creates this folder structure:***
 
@@ -37,11 +37,35 @@ quotescraper/
       - The website to crawl
       - How to crawl it 
       - What data to extract
+      
+   
+**`scrapy --help` command shows important commands we can use**
 
+```shell
+ scrapy --help
+Scrapy 2.13.2 - no active project
+
+Usage:
+  scrapy <command> [options] [args]
+
+Available commands:
+  bench         Run quick benchmark test
+  fetch         Fetch a URL using the Scrapy downloader
+  genspider     Generate new spider using pre-defined templates
+  runspider     Run a self-contained spider (without creating a project)
+  settings      Get settings values
+  shell         Interactive scraping console
+  startproject  Create new project
+  version       Print Scrapy version
+  view          Open URL in browser, as seen by Scrapy
+
+
+```
 
 ## Example Spider
 - scraping a website https://quotes.toscrape.com/ 
-- create a python file `quotes_spider.py` inside spiders folder 
+- create a python file `quotes_spider.py` inside spiders folder.
+- if we use `scrapy genspider <spider_name> <domain>`, it will quickly generate a template spider file.
 - put below code inside the file
 - run this file using `runspider` command: `scrapy runspider quotes_spider.py -o quotes.jsonl` or `scrapy crawl quotes -o quotes.jsonl`
 - when this finishes you will have a `quotes.jsonl` file in JSON Line format, containing the text and author.
@@ -163,7 +187,20 @@ Both return the same `<div class="quote">` blocks.
 - `-o quotes.jsonl` tells Scrapy to save the scraped data into a file named `quotes.jsonl` in **JSON Lines** format.
 - JSON Lines is like JSON but <u>each line is a separate JSON object</u>.
 - The `-O` command-line switch **overwrites** any existing file; use `-o` instead to **append** new content to any existing file. However, appending to a `JSON file(quotes.json)` makes the file contents invalid JSON. When appending to a file, consider using a different serialization format, such as `JSON Lines(quotes.jsonl)`.
+- JSON data is held memory in an array and new data is appended to it, for e.g.
 
+   ```
+   [
+       {"name": "Color TV", "price": "1200"},
+       {"name": "DVD player", "price": "200"}
+   ]
+   ```
+   
+   As a result, it is advised to use JSON lines format if you want to save data in JSON.
+   ```
+   {"name": "Color TV", "price": "1200"}
+   {"name": "DVD player", "price": "200"}
+   ```
 
 ## Following Links
 - This means telling your spider to go to the next page (or any other link) and continue scraping from there.
@@ -223,7 +260,10 @@ To create multiple requests from an iterable, you can use `response.follow_all` 
 yield from response.follow_all(css="ul.pager a", callback=self.parse)
 ```
 
-## Items in Scrapy
+
+# Advance Scrapy
+
+## Items in Scrapy (items.py)
 - Scrapy Items are a predefined data structure that holds your data.
 - Instead of yielding your scraped data in the form of a dictionary for example, you define an Item schema beforehand in your items.py file and use this schema when scraping data.
 - This enables you to quickly and easily check what structured data you are collecting in your project.
@@ -274,3 +314,75 @@ class NewQuotesSpider(scrapy.Spider):
 ```shell
 scrapy crawl -o output/csv_files/allNewQuotes.csv
 ```
+
+## Scrapy Pipelines (pipelines.py)
+
+- Item Pipelines are the data processors of Scrapy, which all our scraped Items will pass through and from where we can clean, process, validate, and store our data.
+- Using Scrapy Pipelines we can:
+
+   - Clean our data (ex. remove currency signs from prices)
+   - Format our data (ex. convert strings to ints)
+   - Enrich our data (ex. convert relative links to absolute links)
+   - Valdiate our data (ex. make sure the price scraped is a viable price)
+   - Store our data in databases, queues, files or object storage buckets
+
+### How to use Pipelines in Scrapy
+
+1. **Task**
+   - convert author names in uppercase.
+   - remove quotation marks from text.
+
+2. **Steps**
+
+   - Create a pipeline in `pipelines.py`
+   ```python
+      class QuotescraperPipeline:
+      def process_item(self, item, spider):
+          item["author"] = item["author"].upper()
+          item['text'] = item['text'].replace('“', '').replace('”', '').replace('"', '').strip()
+          return item
+   ```  
+   
+   - spider file `quotes_advance.py`
+   ```python
+    # spider file: quotes_advance.py
+    
+    import scrapy
+    from ..items import QuotescraperItem
+    
+    class NewQuotesSpider(scrapy.Spider):
+        name = "advance_quotes"
+        allowed_domains = ["quotes.toscrape.com"]
+        start_urls = [
+            "https://quotes.toscrape.com/tag/humor/",
+        ]
+    
+    def parse(self, response, **kwargs):
+        for quote in response.css("div.quote"):
+            item = QuotescraperItem()
+            item["author"] = quote.xpath("span/small/text()").get()
+            item["text"] = quote.css("span.text::text").get()
+            item["tags"] = quote.css("div.tags a.tag::text").getall()
+                yield item
+    
+        next_page = response.css('li.next a::attr("href")').get()
+            if next_page is not None:
+                yield response.follow(next_page, self.parse)
+
+   ``` 
+
+   - Enable pipeline in `settings.py`. The number (300) is priority. Lower = runs earlier.
+   ```python
+    ITEM_PIPELINES = {
+        'quotescraper.pipelines.QuotescraperPipeline': 300,
+    }
+   ```
+   **Note: Each item scraped will now go through process_item() in your pipeline.**
+
+   **Save output: `scrapy crawl advance_quotes -o output/jsonl_files/advance_quotes.jsonl`**
+   
+    **Final result:**
+    ```
+   {"author": "JANE AUSTEN", "text": "The person, be it gentleman or lady, who has not pleasure in a good novel, must be intolerably stupid.", "tags": ["aliteracy", "books", "classic", "humor"]} 
+    ```
+   
