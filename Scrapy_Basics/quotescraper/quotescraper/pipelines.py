@@ -10,6 +10,4 @@ from itemadapter import ItemAdapter
 
 class QuotescraperPipeline:
     def process_item(self, item, spider):
-        item["author"] = item["author"].upper()
-        item['text'] = item['text'].replace('“', '').replace('”', '').replace('"', '').strip()
         return item

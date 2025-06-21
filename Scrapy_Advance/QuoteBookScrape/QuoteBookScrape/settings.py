@@ -1,4 +1,4 @@
-# Scrapy settings for quotescraper project
+# Scrapy settings for QuoteBookScrape project
 #
 # For simplicity, this file contains only settings considered important or
 # commonly used. You can find more settings consulting the documentation:
@@ -7,16 +7,16 @@
 #     https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
-BOT_NAME = "quotescraper"
+BOT_NAME = "QuoteBookScrape"
 
-SPIDER_MODULES = ["quotescraper.spiders"]
-NEWSPIDER_MODULE = "quotescraper.spiders"
+SPIDER_MODULES = ["QuoteBookScrape.spiders"]
+NEWSPIDER_MODULE = "QuoteBookScrape.spiders"
 
 ADDONS = {}
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-#USER_AGENT = "quotescraper (+http://www.yourdomain.com)"
+#USER_AGENT = "QuoteBookScrape (+http://www.yourdomain.com)"
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = True
@@ -47,13 +47,13 @@ ROBOTSTXT_OBEY = True
 # Enable or disable spider middlewares
 # See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 #SPIDER_MIDDLEWARES = {
-#    "quotescraper.middlewares.QuotescraperSpiderMiddleware": 543,
+#    "QuoteBookScrape.middlewares.QuotebookscrapeSpiderMiddleware": 543,
 #}
 
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #DOWNLOADER_MIDDLEWARES = {
-#    "quotescraper.middlewares.QuotescraperDownloaderMiddleware": 543,
+#    "QuoteBookScrape.middlewares.QuotebookscrapeDownloaderMiddleware": 543,
 #}
 
 # Enable or disable extensions
@@ -64,9 +64,10 @@ ROBOTSTXT_OBEY = True
 
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
-# ITEM_PIPELINES = {
-#    "quotescraper.pipelines.QuotescraperPipeline": 300,
-# }
+ITEM_PIPELINES = {
+   "QuoteBookScrape.pipelines.AdvanceQuotesPipeline": 300,
+   "QuoteBookScrape.pipelines.BookStorePipeline": 400,
+}
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html

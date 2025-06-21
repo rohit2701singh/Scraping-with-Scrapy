@@ -264,12 +264,14 @@ yield from response.follow_all(css="ul.pager a", callback=self.parse)
 # Advance Scrapy
 
 ## Items in Scrapy (items.py)
+
 - Scrapy Items are a predefined data structure that holds your data.
 - Instead of yielding your scraped data in the form of a dictionary for example, you define an Item schema beforehand in your items.py file and use this schema when scraping data.
 - This enables you to quickly and easily check what structured data you are collecting in your project.
 - In Scrapy, `items.py` is where you define the data fields (structure) you want to extract from a website.
 
 ### How to use items.py
+
 1. Define fields in `items.py`
 
 ```python
@@ -311,8 +313,9 @@ class NewQuotesSpider(scrapy.Spider):
 ```
 
 3. Run your spider and save output.
+
 ```shell
-scrapy crawl -o output/csv_files/allNewQuotes.csv
+scrapy crawl new_quotes -o output/csv_files/allNewQuotes.csv
 ```
 
 ## Scrapy Pipelines (pipelines.py)
@@ -326,7 +329,7 @@ scrapy crawl -o output/csv_files/allNewQuotes.csv
    - Valdiate our data (ex. make sure the price scraped is a viable price)
    - Store our data in databases, queues, files or object storage buckets
 
-### How to use Pipelines in Scrapy
+### How to use Pipelines in Scrapy (simple method)
 
 1. **Task**
    - convert author names in uppercase.
@@ -350,7 +353,7 @@ scrapy crawl -o output/csv_files/allNewQuotes.csv
     import scrapy
     from ..items import QuotescraperItem
     
-    class NewQuotesSpider(scrapy.Spider):
+    class AdvanceQuotesSpider(scrapy.Spider):
         name = "advance_quotes"
         allowed_domains = ["quotes.toscrape.com"]
         start_urls = [
@@ -385,4 +388,145 @@ scrapy crawl -o output/csv_files/allNewQuotes.csv
     ```
    {"author": "JANE AUSTEN", "text": "The person, be it gentleman or lady, who has not pleasure in a good novel, must be intolerably stupid.", "tags": ["aliteracy", "books", "classic", "humor"]} 
     ```
-   
+
+### Advance method to use Pipelines
+
+By default, **Scrapy pipelines apply to all spiders.** But you can make a pipeline process only specific spiders — and skip the others.
+
+A simple method to solve this problem is to modify our `process_item()`
+```python
+# pipelines.py file
+class QuotescraperPipeline:
+    def process_item(self, item, spider):
+        if spider.name != "advance_quotes":
+            return item  # skip processing for other spiders
+
+        # process only for advance_quotes spider
+        item["author"] = item["author"].upper()
+        item["text"] = item["text"].replace("“", "").replace("”", "").replace('"', "")
+        return item
+
+```
+
+**This approach can be used especially in smaller or medium-sized Scrapy projects. For larger projects we can write multiple pipeline classes and use item Types instead of spider.name.**
+
+#### Folder Structure (for example)
+
+Let's say we have two spiders, one for quotes and one for books: `advance_quotes.py` and `books_spider.py`
+
+```markdown
+Scrapy_Advance/
+└── QuoteBookScrape/
+    ├── scrapy.cfg
+    └── QuoteBookScrape/
+        ├── __init__.py
+        ├── items.py
+        ├── pipelines.py
+        ├── settings.py
+        └── spiders/
+            ├── advance_quotes.py
+            └── books_spider.py
+
+```
+
+**Step-1:** `items.py` Define two different item types (classes)
+
+```python
+import scrapy
+
+class QuoteItem(scrapy.Item):
+    # define the fields for your item here like:
+    author = scrapy.Field()
+    text = scrapy.Field()
+    tags = scrapy.Field()
+
+class BookItem(scrapy.Item):
+    # define the fields for your item here like:
+    title = scrapy.Field()
+    price = scrapy.Field()
+
+```
+
+**Step 2:** Create your spiders `advance_quotes.py` and `books_spider.py`
+
+```python
+# advance_quotes.py
+
+import scrapy
+from ..items import QuoteItem
+
+class AdvanceQuotesSpider(scrapy.Spider):
+    name = "advance_quotes"
+    allowed_domains = ["quotes.toscrape.com"]
+    start_urls = ["https://quotes.toscrape.com/tag/inspirational/"]
+
+    def parse(self, response, **kwargs):
+        for quote in response.css("div.quote"):
+            item = QuoteItem()
+            item["author"] = quote.xpath("span/small/text()").get()
+            item["text"] = quote.css("span.text::text").get()
+            item["tags"] = quote.css("div.tags a.tag::text").getall()
+            yield item
+
+        next_page = response.css('li.next a::attr("href")').get()
+        if next_page is not None:
+            yield response.follow(next_page, self.parse)
+
+
+```
+```python
+# books_spider.py
+
+import scrapy
+from ..items import BookItem
+
+class BooksSpider(scrapy.Spider):
+    name = "books_spider"
+    allowed_domains = ["books.toscrape.com"]
+    start_urls = ["https://books.toscrape.com/catalogue/category/books/fiction_10/index.html"]
+
+    def parse(self, response, **kwargs):
+        for book in response.css("article.product_pod"):
+            item = BookItem()
+            item["title"] = book.css("h3 a::attr(title)").get()
+            item["price"] = book.css("p.price_color::text").get()
+            yield item
+
+        next_page = response.css('li.next a::attr("href")').get()
+        if next_page is not None:
+            yield response.follow(next_page, self.parse)
+
+```
+
+**Step 3:** `pipelines.py` Define two pipeline classes - one for each item type.
+
+```python
+from .items import QuoteItem, BookItem
+
+class AdvanceQuotesPipeline:
+    def process_item(self, item, spider):
+        if isinstance(item, QuoteItem):
+            item['text'] = item['text'].replace('“', '').replace('”', '').strip()
+            item['author'] = item['author'].upper()
+        return item
+
+class BookStorePipeline:
+    def process_item(self, item, spider):
+        if isinstance(item, BookItem):
+            item['title'] = item['title'].strip()
+            item['price'] = item['price'].replace('£', '').strip()
+        return item
+
+```
+**Step 4:** `settings.py` Enable both pipelines
+
+```python
+ITEM_PIPELINES = {
+   "QuoteBookScrape.pipelines.AdvanceQuotesPipeline": 300,
+   "QuoteBookScrape.pipelines.BookStorePipeline": 400,
+}
+```
+
+## Feed exports (Saving Data To Files & Databases)
+
+Scrapy provides a built-in, easy-to-use system called **Feed Exporters** that lets you save your scraped data in different formats like: `json, jsonl, csv, xml, and even custom formats`
