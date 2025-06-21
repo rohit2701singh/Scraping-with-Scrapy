@@ -530,3 +530,108 @@ ITEM_PIPELINES = {
 ## Feed exports (Saving Data To Files & Databases)
 
 Scrapy provides a built-in, easy-to-use system called **Feed Exporters** that lets you save your scraped data in different formats like: `json, jsonl, csv, xml, and even custom formats`
+
+1. We were already using Scrapy's Feed system, just without realizing the name:  
+`scrapy crawl advance_quotes -o output_files/quote.csv` This is **Command-line Feed Exporter Argument**
+
+2. Telling Scrapy to save the data to a CSV via the command line is okay, but can be a little messy. The other option is setting it in your code (`settings.py`), which Scrapy makes very easy.
+    - We can configure it in our `settings.py` file by passing it a dictionary with the path/name of the file and the file format:
+
+    ```python
+        FEEDS = {
+            'output/files_using_feed/quotes.csv': {
+                'format': 'csv',
+                'overwrite': True,
+            },
+            'output/files_using_feed/quotes.jsonl': {
+                'format': 'jsonlines',
+                'overwrite': True,
+                'indent': 2,
+                'encoding': 'utf8',
+            },
+        }
+    
+    ```
+   
+    - The default overwriting behaviour of the FEEDS functionality is dependent on where the data is going to be stored. However, you can set it to overwrite existing data or not by adding a overwrite key to the FEEDS dictionary with either True or False.
+    - When **saving locally**, by default overwrite is set to **False**.
+    - We can add 1 or many formats — Scrapy will export to all of them.
+
+### Dynamic filepath and custom_setting in spider
+
+Setting a static filepath is okay for development or very small projects, however, when in production you will likely don't want all your data being saved into one big file.   
+
+So to solve this Scrapy allows you to create **dynamic file paths/names** using spider variables.  
+- `%(time)s` gets replaced by a timestamp when feed is being created
+- `%(name)s` gets replaced by the spider name
+
+```python
+# add this code at the bottom of the file settings.py
+
+FEEDS = {
+    'output_files/files_using_feed/%(name)s/%(name)s_%(time)s.csv': {
+        'format': 'csv',
+    },
+}
+
+```
+- In bash run: `scrapy crawl <spider name>`. 
+- For e.g. use project we created for learning pipelines: `scrapy crawl book_spider` and `scrapy crawl advance_quotes`
+- generated path: 
+  - `output_files/files_using_feed/books_spider/books_spider_2025-06-21T20-38-09%2B00-00.csv)`
+  - `output_files/files_using_feed/advance_quotes/advance_quotes_2025-06-21T20-37-49+00-00.csv)`
+
+
+**We can set FEEDS dynamically in each spider**
+
+If we want full control from inside the spider file (e.g., different formats for each spider), we can override `custom_settings`.
+
+```python
+# advance_quotes.py
+import scrapy
+
+class AdvanceQuotesSpider(scrapy.Spider):
+    name = "custom_quotes"
+    start_urls = ["https://quotes.toscrape.com/tag/humor/"]
+
+    custom_settings = {
+        'FEEDS': {
+            'output_files/files_CustomSettings/quotes.jsonl': {
+                'format': 'jsonlines',
+                'overwrite': True,
+            }
+        }
+    }
+
+    def parse(self, response, **kwargs):
+        pass
+
+```
+
+**Folder Structure:**
+
+```markdown
+spiders/
+.
+|-- __init__.py
+|-- advance_quotes.py
+|-- books_spider.py
+|-- output_files/
+|   |-- advance_quotes.csv      <-- generated using `scrapy crawl advance_quotes -o output_files/advance_quote.csv`
+|   |-- books.csv               <-- generated using ....(command line).....
+|   |-- files_CustomSettings/   <-- generated from individual spider FEEDS custom_settings
+|   |   `-- quotes.jsonl
+|   `-- files_using_feed/       <-- generated from FEEDS in settings.py
+|       |-- advance_quotes/
+|       |   `-- advance_quotes_2025-06-21T20-37-49+00-00.csv
+|       `-- books_spider/
+|           `-- books_spider_2025-06-21T20-38-09+00-00.csv
+`-- quotes_custom_settings.py
+
+```
+
+### Scrapy's settings priority for saving file: 
+`CLI(command line) > Spider custom_settings > Project settings`  
+- This means CLI `scrapy crawl myspider -O output.csv` will override both `custom_settings` and `settings.py`.
+- If we use `scrapy crawl myspider` without creating output file from command line and if our spider has `custom_settings`, then it overrides `settings.py`.
+- If neither is present, Scrapy uses `settings.py`
