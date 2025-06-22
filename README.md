@@ -675,3 +675,56 @@ QuoteBookScrape
 
 
 ## Logging into a website
+
+All pages of the site have a Login button that redirects us to a /login page. At this login page, you can type in any combination of username and password,
+and when you press the Login button, you will get redirected to the home page that now have the Logout button which means that you are logged in.
+
+`Logging in` using Scrapy means simulating a form submission to authenticate yourself on a website so that you can scrape pages that are only accessible after logging in.
+
+```python
+import scrapy
+from scrapy.http import FormRequest
+from scrapy.utils.response import open_in_browser
+
+
+class LoginSpider(scrapy.Spider):
+    name = 'login_quotes'
+    start_urls = ['https://quotes.toscrape.com/login']
+
+    def parse(self, response):
+        # Send a POST request with the login form
+        return FormRequest.from_response(
+            response,
+            formdata={'user name': 'admin', 'password': 'admin'},
+            callback=self.after_login
+        )
+
+    def after_login(self, response):
+        # We're now logged in if credentials are correct
+        if "Logout" in response.text:
+            self.logger.info("Login successful!")
+        else:
+            self.logger.error("Login failed!")
+
+        # Proceed to scrape after login
+        return response.follow("/tag/humor/", callback=self.parse_quotes)
+
+    def parse_quotes(self, response):
+        open_in_browser(response)   # open page in browser
+        
+        # code to parse data.....
+
+```
+
+### Explanation
+
+- Inspect login form
+    - Find the form fields (look for `<input name="...">` name attribute)
+    - Identify required fields and hidden `csrf_token`
+- To submit form data use `FormRequest.from_response()` in default callback method Scrapy calls for the URL(s) in start_urls.
+- Scrapy makes it easy to submit the login form by extracting hidden fields automatically.
+- `callback = self.after_login` After submitting the form, Scrapy will call the after_login method with the server's response. This is where you check if login succeeded or failed.
+- If login succeeded (or even if it failed), you navigate to the page `/tag/humor/`. Scrapy will call the `parse_quotes` method on the new response.
+- `parse_quotes(self, response)` method handles the HTML from the quotes page.
+- `open_in_browser(response)` opens the HTML page in your default browser so you can visually check what was loaded.
+

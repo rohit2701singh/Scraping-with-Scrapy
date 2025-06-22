@@ -11,7 +11,7 @@ class LoginSpider(scrapy.Spider):
         # Send a POST request with the login form
         return FormRequest.from_response(
             response,
-            formdata={'user name': 'admin', 'password': 'admin'},
+            formdata={'username': 'admin', 'password': 'admin'},
             callback=self.after_login
         )
 
