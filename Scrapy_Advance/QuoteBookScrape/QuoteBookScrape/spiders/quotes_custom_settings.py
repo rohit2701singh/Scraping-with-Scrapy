@@ -8,7 +8,7 @@ class AdvanceQuotesSpider(scrapy.Spider):
 
     custom_settings = {
         'FEEDS': {
-            'output_files/files_CustomSettings/quotes.jsonl': {
+            'QuoteBookScrape/output_files/files_CustomSettings/quotes.jsonl': {
                 'format': 'jsonlines',
                 'overwrite': True,
             }

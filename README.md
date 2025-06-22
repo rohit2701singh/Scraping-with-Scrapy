@@ -11,15 +11,15 @@ Before you start scraping, you will have to set up a new Scrapy project. Enter a
 ***Scrapy creates this folder structure:***
 
 ```markdown
-quotescraper/
+quotescraper/       <-- run `scrapy crawl` from project root directory
 ├── scrapy.cfg
-└── quotescraper/
+└── quotescraper/   <-- save files in dedicated `output_files/` directory inside this
     ├── __init__.py
     ├── items.py
     ├── middlewares.py
     ├── pipelines.py
     ├── settings.py
-    └── spiders/
+    └── spiders/    <-- create your spiders here (.py files)
         └── __init__.py
 
 ```
@@ -67,9 +67,9 @@ Available commands:
 - create a python file `quotes_spider.py` inside spiders folder.
 - if we use `scrapy genspider <spider_name> <domain>`, it will quickly generate a template spider file.
 - put below code inside the file
-- run this file using `runspider` command: `scrapy runspider quotes_spider.py -o quotes.jsonl` or `scrapy crawl quotes -o quotes.jsonl`
+- run this file using `runspider` command: `scrapy runspider quotes_spider.py -o quotes.jsonl` or `scrapy crawl quotes -o quotes.jsonl` (run crawl from root project directory)
 - when this finishes you will have a `quotes.jsonl` file in JSON Line format, containing the text and author.
-- manage output files separately: `scrapy crawl quotes -o output/jsonl_files/quotes.jsonl`
+- manage output files separately (save output files outside the spiders folder): `scrapy crawl quotes -o quotescraper/output_files/jsonl_files/quotes.jsonl`
 
 ```python
 import scrapy
@@ -103,6 +103,32 @@ class QuotesSpider(scrapy.Spider):
 - Look for a link to the next page and schedule another request using the same parse method as callback.
 - `quote.css("span.text::text").get()`, we have added `::text` to the CSS query, this means we want to select only the text elements directly inside `span.text`.
 
+
+**Folder structure after saving output in multiple formats:**
+
+```markdown
+
+quotescraper  <-- ⚙️ run crawl from this location
+.
+|-- quotescraper
+|   |-- __init__.py
+|   |-- items.py
+|   |-- middlewares.py
+|   |-- output_files    <-- 📁 save files in this location
+|   |   |-- csv_files
+|   |   |   `-- allNewQuotes.csv
+|   |   `-- jsonl_files
+|   |       |-- allNewQuotes.jsonl
+|   |       `-- quotes.jsonl
+|   |-- pipelines.py
+|   |-- settings.py
+|   `-- spiders
+|       |-- __init__.py
+|       |-- quotes_html.py
+|       `-- quotes_json.py
+`-- scrapy.cfg
+
+```
 
 ## Extracting data using Scrapy Shell
 - We can extract data with Scrapy using `Scrapy Shell`  
@@ -315,7 +341,7 @@ class NewQuotesSpider(scrapy.Spider):
 3. Run your spider and save output.
 
 ```shell
-scrapy crawl new_quotes -o output/csv_files/allNewQuotes.csv
+scrapy crawl new_quotes -o quotescraper/output/csv_files/allNewQuotes.csv
 ```
 
 ## Scrapy Pipelines (pipelines.py)
@@ -366,7 +392,7 @@ scrapy crawl new_quotes -o output/csv_files/allNewQuotes.csv
             item["author"] = quote.xpath("span/small/text()").get()
             item["text"] = quote.css("span.text::text").get()
             item["tags"] = quote.css("div.tags a.tag::text").getall()
-                yield item
+            yield item
     
         next_page = response.css('li.next a::attr("href")').get()
             if next_page is not None:
@@ -382,7 +408,8 @@ scrapy crawl new_quotes -o output/csv_files/allNewQuotes.csv
    ```
    **Note: Each item scraped will now go through process_item() in your pipeline.**
 
-   **Save output: `scrapy crawl advance_quotes -o output/jsonl_files/advance_quotes.jsonl`**
+   **Save output:**   
+   `scrapy crawl advance_quotes -o quotescraper/output/jsonl_files/advance_quotes.jsonl`
    
     **Final result:**
     ```
@@ -569,7 +596,7 @@ So to solve this Scrapy allows you to create **dynamic file paths/names** using 
 # add this code at the bottom of the file settings.py
 
 FEEDS = {
-    'output_files/files_using_feed/%(name)s/%(name)s_%(time)s.csv': {
+    'QuoteBookScrape/output_files/files_using_feed/%(name)s/%(name)s_%(time)s.csv': {
         'format': 'csv',
     },
 }
@@ -578,11 +605,11 @@ FEEDS = {
 - In bash run: `scrapy crawl <spider name>`. 
 - For e.g. use project we created for learning pipelines: `scrapy crawl book_spider` and `scrapy crawl advance_quotes`
 - generated path: 
-  - `output_files/files_using_feed/books_spider/books_spider_2025-06-21T20-38-09%2B00-00.csv)`
-  - `output_files/files_using_feed/advance_quotes/advance_quotes_2025-06-21T20-37-49+00-00.csv)`
+  - `QuoteBookScrape/QuoteBookScrape/output_files/files_using_feed/advance_quotes/advance_quotes_2025-06-22T19-21-50+00-00.csv`
+  - `QuoteBookScrape/QuoteBookScrape/output_files/files_using_feed/books_spider/books_spider_2025-06-22T19-41-19+00-00.csv`
 
 
-**We can set FEEDS dynamically in each spider**
+**We can set FEEDS dynamically in each spider (custom_settings)**
 
 If we want full control from inside the spider file (e.g., different formats for each spider), we can override `custom_settings`.
 
@@ -596,7 +623,7 @@ class AdvanceQuotesSpider(scrapy.Spider):
 
     custom_settings = {
         'FEEDS': {
-            'output_files/files_CustomSettings/quotes.jsonl': {
+            'QuoteBookScrape/output_files/files_CustomSettings/quotes.jsonl': {
                 'format': 'jsonlines',
                 'overwrite': True,
             }
@@ -611,22 +638,32 @@ class AdvanceQuotesSpider(scrapy.Spider):
 **Folder Structure:**
 
 ```markdown
-spiders/
+
+QuoteBookScrape
 .
-|-- __init__.py
-|-- advance_quotes.py
-|-- books_spider.py
-|-- output_files/
-|   |-- advance_quotes.csv      <-- generated using `scrapy crawl advance_quotes -o output_files/advance_quote.csv`
-|   |-- books.csv               <-- generated using ....(command line).....
-|   |-- files_CustomSettings/   <-- generated from individual spider FEEDS custom_settings
-|   |   `-- quotes.jsonl
-|   `-- files_using_feed/       <-- generated from FEEDS in settings.py
-|       |-- advance_quotes/
-|       |   `-- advance_quotes_2025-06-21T20-37-49+00-00.csv
-|       `-- books_spider/
-|           `-- books_spider_2025-06-21T20-38-09+00-00.csv
-`-- quotes_custom_settings.py
+|-- QuoteBookScrape
+|   |-- __init__.py
+|   |-- items.py
+|   |-- middlewares.py
+|   |-- output_files
+|   |   |-- files_CustomSettings   <-- files generated from `quotes_custom_settings.py` file
+|   |   |   `-- quotes.jsonl
+|   |   |-- files_using_CLI        <-- generated using command line `scrapy crawl <spider name> -O QuoteBookScrape/output_files/....`
+|   |   |   |-- advance_quotes.csv
+|   |   |   `-- books.csv
+|   |   `-- files_using_feed       <-- dynamic output files location set in `settings.py` 
+|   |       |-- advance_quotes
+|   |       |   `-- advance_quotes_2025-06-22T19-21-50+00-00.csv
+|   |       `-- books_spider
+|   |           `-- books_spider_2025-06-22T19-41-19+00-00.csv
+|   |-- pipelines.py
+|   |-- settings.py
+|   `-- spiders
+|       |-- __init__.py
+|       |-- advance_quotes.py
+|       |-- books_spider.py
+|       `-- quotes_custom_settings.py   <--📜 FEEDS custom_settings (FEEDS for specific spider)
+`-- scrapy.cfg
 
 ```
 
@@ -635,3 +672,6 @@ spiders/
 - This means CLI `scrapy crawl myspider -O output.csv` will override both `custom_settings` and `settings.py`.
 - If we use `scrapy crawl myspider` without creating output file from command line and if our spider has `custom_settings`, then it overrides `settings.py`.
 - If neither is present, Scrapy uses `settings.py`
+
+
+## Logging into a website

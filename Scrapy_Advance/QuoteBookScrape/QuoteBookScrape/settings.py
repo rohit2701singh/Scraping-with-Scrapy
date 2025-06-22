@@ -95,7 +95,7 @@ FEED_EXPORT_ENCODING = "utf-8"
 
 # feed configuration by us
 FEEDS = {
-    'output_files/files_using_feed/%(name)s/%(name)s_%(time)s.csv': {
+    'QuoteBookScrape/output_files/files_using_feed/%(name)s/%(name)s_%(time)s.csv': {
         'format': 'csv',
     },
 }
