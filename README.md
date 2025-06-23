@@ -30,6 +30,9 @@
             - [Method-1](#method-1-manual-rotation-inside-start_requests), [Method-2](#method-2-use-scrapy-user-agents-package-automatic-rotation)
         - [Fake headers vs User-Agent](#fake-headers--user-agents)
             - [How to send Headers?](#how-to-send-browser-headers)
+    - [Bypass restriction using Proxies](#bypass-restriction-using-proxies)
+        - [How to integrate and rotate proxy lists?](#how-to-integrate-and-rotate-proxy-lists)
+
 
 ## What is Scrapy?
 Scrapy is an open-source <u>**Python framework**</u> designed for web scraping and web crawling. It allows developers to efficiently extract structured data from websites, process it, and save it in formats like JSON, CSV, or databases. Scrapy provides tools to handle requests, follow links, and manage crawling rules, making it powerful for data mining, automated testing, and information gathering from the web.  
@@ -930,6 +933,47 @@ class QuoteSpider(scrapy.Spider):
 
 **Note:** Every browser (Chrome, Firefox, Edge, etc.) attaches slightly different headers in a different order,
 based on the operating system the browser is running on. So it is important to ensure the headers (and header order) we attach to our requests is correct.
+
+
+## Bypass restriction using Proxies
+
+- As we saw most websites try to limit or completely block scrapers from accessing their website data. Part of the solution is to use user-agents and browser headers to make your scraper appear more like a real browser.
+- However, this won't work when scraping at scale as your `IP address` will be static. This is where **web scraping proxies** come in.
+- `Web scraping proxies` are IP addresses that you route your requests through instead of using your own or servers IP address.
+
+### How to integrate and rotate proxy lists?
+- To integrate a list of proxies with our spider, we can build our own proxy management layer, or we can simply install an existing Scrapy middleware that will manage our proxy list for us.
+- There are several free Scrapy middlewares out there that we can choose from. For now, we will use `scrapy-rotating-proxies`.
+
+**Steps:** 
+- Install package: `pip install scrapy-rotating-proxies`
+- In `settings.py`:
+
+```python
+# settings.py
+
+# enable proxy middleware in your downloader middlewares
+DOWNLOADER_MIDDLEWARES = {
+    'rotating_proxies.middlewares.RotatingProxyMiddleware': 610,
+    'rotating_proxies.middlewares.BanDetectionMiddleware': 620,
+}
+
+# insert your list of proxies here
+ROTATING_PROXY_LIST = [
+    # IP:PORT
+    178.207.11.148:3129,
+    103.145.32.249:8080,
+    161.35.98.111:8080,
+    # add more
+]
+
+```
+- After this, all requests our spider makes will be proxied using one of the proxies from the `ROTATING_PROXY_LIST`.
+
+- As an alternative (to ROTATING_PROXY_LIST), you can specify a `ROTATING_PROXY_LIST_PATH` options with a path to a file with proxies, one per line:  
+`ROTATING_PROXY_LIST_PATH = '/my/path/proxies.txt'`
+- Note that if both list and path are present then path takes precedence.
+
 
 
 
