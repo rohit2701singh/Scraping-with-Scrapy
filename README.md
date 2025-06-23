@@ -22,7 +22,7 @@
     - [Logging into a website](#logging-into-a-website)
 
     - [Fake Headers & User Agents](#fake-headers--user-agents)
-        - [What are User-Agents?](#what-are-user-agents-)
+        - [What are User-Agents?](#what-are-user-agents)
         - [How to set Fake User-Agent?](#how-to-set-fake-user-agent-in-scrapy)
             - [Method-1](#method-1-set-user-agent-globally-in-settingspy), [Method-2](#method-2-set-user-agent-per-spider-custom_settings),
                 [Method-3](#method-3-set-user-agent-manually-in-request-headers)
@@ -771,7 +771,7 @@ The true difficulty of web scraping is in being able to reliably retrieve HTML r
 
 However, the most important and easiest to mitigate ways of bypassing a websites anti-bot protection systems is to **fake your headers and user-agents**, and use **rotating proxy pools**.
 
-### What are User-Agents? 
+### What are User-Agents?
 User-Agent strings are part of the **HTTP request headers** and are used to identify the client (user or bot) making a request to a web server.
 
 They typically include information like:
