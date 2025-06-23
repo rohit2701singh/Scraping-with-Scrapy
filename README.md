@@ -14,12 +14,20 @@
         - [How to use items.py](#how-to-use-itemspy)
     - [Scrapy Pipelines](#scrapy-pipelines-pipelinespy)
         - [How to use Pipelines? (simple method)](#how-to-use-pipelines-in-scrapy-simple-method)
-        - [Advance method to use Scrapy](#advance-method-to-use-pipelines)
+        - [Advance method to use Pipelines](#advance-method-to-use-pipelines)
     - [Feed exports (saving data)](#feed-exports-saving-data-to-files--databases)
         - [Dynamic filepath and custom_setting](#dynamic-filepath-and-custom_setting-in-spider)
             - [Folder structure](#folder-structure)
             - [Priority for saving files](#scrapys-settings-priority-for-saving-file-)
     - [Logging into a website](#logging-into-a-website)
+
+    - [Fake Headers & User Agents](#fake-headers--user-agents)
+        - [What are User-Agents?](#what-are-user-agents-)
+        - [How to set Fake User-Agent?](#how-to-set-fake-user-agent-in-scrapy)
+            - [Method-1](#method-1-set-user-agent-globally-in-settingspy), [Method-2](#method-2-set-user-agent-per-spider-custom_settings),
+                [Method-3](#method-3-set-user-agent-manually-in-request-headers)
+        - [How to rotate User-Agent?](#how-to-rotate-user-agent)
+            - [Method-1](#method-1-manual-rotation-inside-start_requests), [Method-2](#method-2-use-scrapy-user-agents-package-automatic-rotation)
 
 
 ## What is Scrapy?
@@ -751,3 +759,119 @@ class LoginSpider(scrapy.Spider):
 - If login succeeded (or even if it failed), you navigate to the page `/tag/humor/`. Scrapy will call the `parse_quotes` method on the new response.
 - `parse_quotes(self, response)` method handles the HTML from the quotes page.
 - `open_in_browser(response)` opens the HTML page in your default browser so you can visually check what was loaded.
+
+
+## Fake Headers & User Agents
+
+Websites like [QuotesToScrap](https://quotes.toscrape.com) intended to help you to learn web scraping, so it doesn't block your scraping bot.
+
+However, what you will quickly find out when you start scraping protected websites like Amazon, Google, is that building and running your scrapers is the easy part.
+
+The true difficulty of web scraping is in being able to reliably retrieve HTML responses from the pages you want to scrape. This is because most websites want to limit or completely stop your ability to scrape data from their websites.
+
+However, the most important and easiest to mitigate ways of bypassing a websites anti-bot protection systems is to **fake your headers and user-agents**, and use **rotating proxy pools**.
+
+### What are User-Agents? 
+User-Agent strings are part of the **HTTP request headers** and are used to identify the client (user or bot) making a request to a web server.
+
+They typically include information like:
+- The application (browser, script, bot)
+- The operating system (Windows, macOS, Linux, Android, etc.)
+- The browser engine (e.g., Chrome, Firefox, Safari)
+- Sometimes even device type (e.g., mobile, tablet, desktop)
+
+Example User agent sent when you visit a website with a Chrome browser:
+`Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36`
+
+When you use Scrapy with the default settings, the user-agent your spider sends is the following by default: `Scrapy/VERSION (+https://scrapy.org)`  
+This immediately tells the website you're a bot, and you might get blocked or redirected to CAPTCHA pages.
+
+
+### How to set Fake User-Agent in Scrapy?
+
+#### Method-1: Set User-Agent Globally in `settings.py`
+- This applies to all spiders by default.
+
+```python
+# settings.py
+USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36'
+```
+
+#### Method-2: Set User-Agent per Spider (custom_settings)
+- use this if you want a different User-Agent for each spider
+
+```python
+# myspider.py
+
+class MySpider(scrapy.Spider):
+    name = 'myspider'
+
+    custom_settings = {
+        'USER_AGENT': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Firefox/119.0'
+    }
+
+```
+
+#### Method-3: Set User-Agent manually in Request Headers
+- Best for setting it on specific requests only.
+
+```python
+# myspider.py
+import scrapy
+
+# add method inside spider class
+def start_requests(self):
+    for url in self.start_urls:
+        yield scrapy.Request(
+            url=url,
+            callback=self.parse,
+            headers={
+                "User-Agent": "Mozilla/5.0 (iPad; CPU OS 12_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148"
+            }
+        )
+```
+
+### How to rotate User-Agent?
+
+Websites detect repeated requests with the same user-agent and may block or throttle your scraper. Different real users use different devices and browsers. Rotating user-agents helps you appear more like genuine traffic.
+
+#### Method-1: Manual Rotation (inside start_requests)
+- Use Python's `random.choice()` to pick a random user-agent for each request
+
+```python
+# myspider.py
+
+import scrapy
+import random
+from scrapy import Request
+
+USER_AGENTS = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Safari/537.36',
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 14_4_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Mobile/15E148 Safari/604.1',
+    'Mozilla/4.0 (compatible; MSIE 9.0; Windows NT 6.1)',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.141 Safari/537.36 Edg/87.0.664.75',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36 Edge/18.18363',
+]
+
+# add method inside spider class
+def start_requests(self):
+    for url in self.start_urls:
+        yield Request(
+            url=url,
+            headers={'User-Agent': random.choice(USER_AGENTS)},
+            callback=self.parse
+        )
+
+```
+
+#### Method-2: Use `scrapy-user-agents` Package (automatic rotation)
+
+- Install `pip install scrapy-user-agents`
+- In `settings.py`
+```python
+# settings.py
+
+DOWNLOADER_MIDDLEWARES = {
+    'scrapy_user_agents.middlewares.RandomUserAgentMiddleware': 400,
+}
+```
