@@ -1,5 +1,27 @@
 # Web Scraping using Scrapy
 
+## Table of Contents
+
+- [What is Scrapy?](#what-is-scrapy)
+- [Create Scrapy Project](#creating-scrapy-project)
+- [Example Spider](#example-spider)
+    - [what just happened?](#what-just-happened)
+- [Extracting data using Scrapy Shell](#extracting-data-using-scrapy-shell)
+- [Storing Scraped data](#storing-the-scraped-data)
+- [Following Links](#following-links)
+- [Advance Scrapy](#advance-scrapy)
+    - [Items in Scrapy](#items-in-scrapy-itemspy)
+        - [How to use items.py](#how-to-use-itemspy)
+    - [Scrapy Pipelines](#scrapy-pipelines-pipelinespy)
+        - [How to use Pipelines? (simple method)](#how-to-use-pipelines-in-scrapy-simple-method)
+        - [Advance method to use Scrapy](#advance-method-to-use-pipelines)
+    - [Feed exports (saving data)](#feed-exports-saving-data-to-files--databases)
+        - [Dynamic filepath and custom_setting](#dynamic-filepath-and-custom_setting-in-spider)
+            - [Folder structure](#folder-structure)
+            - [Priority for saving files](#scrapys-settings-priority-for-saving-file-)
+    - [Logging into a website](#logging-into-a-website)
+
+
 ## What is Scrapy?
 Scrapy is an open-source <u>**Python framework**</u> designed for web scraping and web crawling. It allows developers to efficiently extract structured data from websites, process it, and save it in formats like JSON, CSV, or databases. Scrapy provides tools to handle requests, follow links, and manage crawling rules, making it powerful for data mining, automated testing, and information gathering from the web.  
 With Scrapy you write __Spiders__ to retrieve HTML pages from websites and scrape the data you want, clean and validate it, and store it in the data format you want.
@@ -285,7 +307,9 @@ To create multiple requests from an iterable, you can use `response.follow_all` 
 ```shell
 yield from response.follow_all(css="ul.pager a", callback=self.parse)
 ```
+<br>
 
+[Back to Table of Content ⬆️](#table-of-contents)
 
 # Advance Scrapy
 
@@ -635,7 +659,7 @@ class AdvanceQuotesSpider(scrapy.Spider):
 
 ```
 
-**Folder Structure:**
+#### Folder Structure:
 
 ```markdown
 
@@ -727,4 +751,3 @@ class LoginSpider(scrapy.Spider):
 - If login succeeded (or even if it failed), you navigate to the page `/tag/humor/`. Scrapy will call the `parse_quotes` method on the new response.
 - `parse_quotes(self, response)` method handles the HTML from the quotes page.
 - `open_in_browser(response)` opens the HTML page in your default browser so you can visually check what was loaded.
-
