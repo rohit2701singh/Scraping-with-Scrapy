@@ -28,7 +28,8 @@
                 [Method-3](#method-3-set-user-agent-manually-in-request-headers)
         - [How to rotate User-Agent?](#how-to-rotate-user-agent)
             - [Method-1](#method-1-manual-rotation-inside-start_requests), [Method-2](#method-2-use-scrapy-user-agents-package-automatic-rotation)
-
+        - [Fake headers vs User-Agent](#fake-headers--user-agents)
+            - [How to send Headers?](#how-to-send-browser-headers)
 
 ## What is Scrapy?
 Scrapy is an open-source <u>**Python framework**</u> designed for web scraping and web crawling. It allows developers to efficiently extract structured data from websites, process it, and save it in formats like JSON, CSV, or databases. Scrapy provides tools to handle requests, follow links, and manage crawling rules, making it powerful for data mining, automated testing, and information gathering from the web.  
@@ -875,3 +876,61 @@ DOWNLOADER_MIDDLEWARES = {
     'scrapy_user_agents.middlewares.RandomUserAgentMiddleware': 400,
 }
 ```
+
+### Fake headers vs User-Agent
+
+- A **User-Agent** is one specific HTTP header that tells the server what browser/device is making the request.
+
+- Just adding fake user-agents to your requests will help you scrape websites with simple anti-bot protection systems, however, for websites with proper anti-bot protection just setting users-agents isn't enough.
+
+- To convince these websites (Amazon, Google, etc.) that you are not a scraper, you must be using fake browser headers to mimic the browser fingerprints of real users.
+
+- **Browser headers** include all the headers typically sent by a real browser - not just the User-Agent.
+
+#### How to send Browser Headers?
+
+You can add fake browser headers just as you would add fake user-agents as user-agents are just one type of header.
+
+```python
+# myspider.py
+
+import scrapy
+
+class QuoteSpider(scrapy.Spider):
+    name = 'quote_spider'
+    start_urls = ['https://quotes.toscrape.com']
+
+    def start_requests(self):
+        fake_browser_header = {
+            "upgrade-insecure-requests": "1",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
+            "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+            "sec-ch-ua": '"Google Chrome";v="137", "Chromium";v="137", "Not/A)Brand";v="24"',
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "Windows",
+            "sec-fetch-site": "none",
+            "sec-fetch-mode": "navigate",
+            "sec-fetch-user": "?1",
+            "Sec-Fetch-Dest": "document",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-IN,en-GB;q=0.9,en-US;q=0.8,en;q=0.7,hi;q=0.6"
+        }
+        
+        for url in self.start_urls:
+            yield scrapy.Request(
+                url=url,
+                headers=fake_browser_header,
+                callback=self.parse
+            )
+
+    def parse(self, response):
+        print(response.text)  # Just print to verify
+
+```
+
+**Note:** Every browser (Chrome, Firefox, Edge, etc.) attaches slightly different headers in a different order,
+based on the operating system the browser is running on. So it is important to ensure the headers (and header order) we attach to our requests is correct.
+
+
+
+[Back to Table of Content ⬆️](#table-of-contents)
